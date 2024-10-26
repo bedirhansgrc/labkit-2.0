@@ -394,20 +394,21 @@
           const ip = statusData.status.ip;
 
           if (ssid === "-" && ip === "-") {
-            // No connection: Update WiFi icon to gray, hide spinner, and show input fields
+            // Bağlantı yok: WiFi simgesini gri yap, spinner'ı gizle, giriş alanlarını göster
             document.getElementById("wifiIcon").innerHTML =
               '<span class="material-icons" style="color: gray;">wifi</span>';
             document.getElementById("proceedButton").style.display = "none";
             document.getElementById("inputContainer").style.display = "flex";
-            document.getElementById("loadingSpinner").style.display = "none"; // Hide spinner
+            document.getElementById("loadingSpinner").style.display = "none"; // Spinner'ı gizle
           } else {
-            // Connection exists: Update WiFi icon to green and proceed as before
+            // Bağlantı mevcut: WiFi simgesini yeşil yap
             document.getElementById("wifiIcon").innerHTML =
               '<span class="material-icons" style="color: green;">wifi</span>';
             document.getElementById("inputContainer").style.display = "none";
-            document.getElementById("proceedButton").style.display = "block";
+            // Proceed düğmesi belirlemesini engelliyoruz
+            // document.getElementById("proceedButton").style.display = "block"; // Bu satırı kaldırdık
 
-            // Redirect after 1 second to the received IP address
+            // 1 saniye sonra IP adresine yönlendir
             setTimeout(() => {
               window.location.href = `http://${ip}`;
             }, 1000);
