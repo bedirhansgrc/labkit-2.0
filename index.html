@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@labkit: Interactive I2C Interface</title>
+    <link rel="shortcut icon" href="/public/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap"
+    />
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="navbar-logo">
+        <a href="index.html">@labkit</a>
+      </div>
+      <div class="navbar-button">
+        <a href="Pages/deviceSelection.html" class="button"
+          >Select Your Device</a
+        >
+      </div>
+    </nav>
+
+    <!-- Slideshow container -->
+    <div class="slideshow-container">
+      <!-- Slide 1 -->
+      <div class="mySlide fade">
+        <div class="container-slideshow">
+          <div class="content">
+            <h1>
+              @labkit:
+              <h2>Introducing @labkit: Your Comprehensive Toolset for Electronic Device Interaction and Testing</h2>
+            </h1>
+            <p>
+              "@labkit is a web-based platform designed for seamless interaction
+              with and testing of electronic devices. This comprehensive toolset
+              enables users to monitor analog signals in real-time, perform data
+              exchange through widely used protocols such as I2C and UART, and
+              conduct in-depth analysis of digital signals. Additionally, it
+              facilitates the updating and validation of device firmware. With
+              its user-friendly interface, @labkit serves as an ideal solution
+              for both seasoned developers and beginners alike. By streamlining
+              the development and testing processes, @labkit empowers users to
+              manage their electronic projects with enhanced efficiency and
+              control."
+            </p>
+            <a href="Pages/deviceSelection.html" class="button"
+              >Select Your Device</a
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 2 -->
+      <div class="mySlide fade">
+        <div class="container-slideshow">
+          <div class="content">
+            <h1 style="font-weight: 700; font-size: 3rem;">
+              @labkit: Getting Started
+              <h2 style="font-weight: 500; font-size: 2rem; margin-top: 10px;">How to Set Up Your Device</h2>
+            </h1>
+            <p style="font-weight: 400; font-size: 1.1rem; line-height: 1.6;">
+              1. <strong>Select Your Device:</strong> Begin by clicking the "Select Your Device" button on the homepage to start the setup process.
+            </p>
+            <p style="font-weight: 400; font-size: 1.1rem; line-height: 1.6;">
+              2. <strong>Choose Your Device:</strong> From the list of available devices, select the one you wish to work with, such as ESP32, RPICO, or Labkit.
+            </p>
+            <p style="font-weight: 400; font-size: 1.1rem; line-height: 1.6;">
+              3. <strong>Install or Validate Labkit Firmware:</strong> Install the Labkit software by clicking the "Flash" button, or validate the existing firmware with the "Validate For Application" option to ensure everything is set up correctly.
+            </p>
+        
+          </div>
+        </div>
+      </div>
+      
+
+      <!-- Slide 3 -->
+      <div class="mySlide fade">
+        <div class="container-slideshow">
+          <div class="content">
+            <h1 style="font-weight: 700; font-size: 3rem;">
+              @labkit: Next Steps
+              <h2 style="font-weight: 500; font-size: 2rem; margin-top: 10px;">Continue Setting Up Your Device</h2>
+            </h1>
+            <p style="font-weight: 400; font-size: 1.1rem; line-height: 1.6;">
+              4. <strong>Check Wi-Fi Connection:</strong> Ensure your device is connected to a Wi-Fi network by clicking "Check Connection." If it's not connected, you can enter your Wi-Fi credentials or switch to a different network if needed.
+            </p>
+            <p style="font-weight: 400; font-size: 1.1rem; line-height: 1.6;">
+              5. <strong>Connect to a Different Network:</strong> If you wish to connect to a different Wi-Fi network or reset your current connection, use the available options to manage your network settings.
+            </p>
+            <p style="font-weight: 400; font-size: 1.1rem; line-height: 1.6;">
+              6. <strong>Access the Application Page:</strong> Once your device is connected and ready, navigate to the application page to choose and use the tool that suits your needs, such as the Analog Signal Reader, I2C Debugger, or Logic Analyzer.
+            </p>
+            <a href="Pages/deviceSelection.html" class="button" style="font-size: 1.2rem; font-weight: 700; padding: 15px 40px; background-color: #1a1aff; border-radius: 5px; color: #ffffff; text-decoration: none;">Continue</a>
+          </div>
+        </div>
+      </div>
+      
+
+      <!-- Next and previous buttons -->
+      <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+      <a class="next" onclick="plusSlides(1)">&#10095;</a>
+
+      <!-- Dots indicating current slide -->
+      <div class="dot-container">
+        <span class="dot" onclick="currentSlide(1)"></span>
+        <span class="dot" onclick="currentSlide(2)"></span>
+        <span class="dot" onclick="currentSlide(3)"></span>
+      </div>
+    </div>
+
+    <script>
+      let slideIndex = 1;
+      showSlides(slideIndex);
+
+      function plusSlides(n) {
+        showSlides((slideIndex += n));
+      }
+
+      function currentSlide(n) {
+        showSlides((slideIndex = n));
+      }
+
+      function showSlides(n) {
+        let i;
+        let slides = document.getElementsByClassName("mySlide");
+        let dots = document.getElementsByClassName("dot");
+        if (n > slides.length) {
+          slideIndex = 1;
+        }
+        if (n < 1) {
+          slideIndex = slides.length;
+        }
+        for (i = 0; i < slides.length; i++) {
+          slides[i].style.display = "none";
+        }
+        for (i = 0; i < dots.length; i++) {
+          dots[i].className = dots[i].className.replace(" active", "");
+        }
+        slides[slideIndex - 1].style.display = "block";
+        dots[slideIndex - 1].className += " active";
+      }
+    </script>
+  </body>
+</html>

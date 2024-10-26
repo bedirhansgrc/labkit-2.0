@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flash Tool</title>
+    <link rel="shortcut icon" href="/public/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap"
+    />
+    <link rel="stylesheet" href="/public/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <script
+      type="module"
+      src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+    ></script>
+    <style>
+      .flash-tool-container,
+      .first-connection-container,
+      .app-container {
+        display: none;
+      }
+
+      .app-container.show {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+      .first-connection-container.show {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .flash-tool-container.show {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        margin-top: 20px;
+      }
+
+      .first-connection-container .app-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+        transition: transform 0.5s;
+      }
+
+      .first-connection-container a:hover {
+        cursor: pointer;
+      }
+
+      .first-connection-container .message {
+        margin-top: 10px;
+        font-size: 16px;
+        color: red;
+        display: none;
+      }
+
+      .first-connection-container .success {
+        color: green;
+      }
+
+      #goToAppButton {
+        display: none;
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #1a1aff;
+        border-radius: 10px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+        white-space: nowrap;
+      }
+
+      #resetConnectionButton {
+        display: none;
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #ff1a1a;
+        border-radius: 10px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+        white-space: nowrap;
+      }
+
+      #connectNewNetworkButton {
+        display: none;
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #28a745;
+        border-radius: 10px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+        white-space: nowrap;
+      }
+
+      .first-connection-container .input-container {
+        display: none;
+        margin-top: 20px;
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+      }
+
+      .first-connection-container .input-container input {
+        display: block;
+        margin-bottom: 10px;
+        padding: 10px;
+        font-family: "Roboto Mono", monospace;
+        font-size: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .first-connection-container .input-container button {
+        padding: 10px 20px;
+        font-family: "Roboto Mono", monospace;
+        font-size: 1rem;
+        cursor: pointer;
+        display: block;
+        margin: 0 auto;
+      }
+      .error {
+        color: red;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav class="navbar">
+      <div class="navbar-logo">
+        <a href="/index.html">@labkit</a>
+      </div>
+      <div class="navbar-button">
+        <a href="#" class="button">Anayurt Teknoloji</a>
+      </div>
+    </nav>
+
+    <!-- Flash Tool Container -->
+    <div class="flash-tool-container show">
+      <div class="app-button">
+        <a href="#" class="flash-link" id="flashButton">
+          <span>Flash <i class="fas fa-bolt"></i></span>
+        </a>
+      </div>
+      <div class="app-button">
+        <a href="#" class="flash-link" id="alreadyFlashedButton">
+          <span
+            >Validate For<br />Application <i class="fas fa-check-circle"></i
+          ></span>
+        </a>
+      </div>
+      <div id="message" class="error" style="display: none"></div>
+      <!-- Hidden esp-web-install-button -->
+      <esp-web-install-button
+        id="hiddenInstallButton"
+        manifest="https://raw.githubusercontent.com/bedirhansgrc/download/main/manifest.json"
+        style="display: none"
+      ></esp-web-install-button>
+    </div>
+
+    <!-- First Connection Container -->
+    <div class="first-connection-container">
+      <div id="inputContainer" class="input-container">
+        <input type="text" id="ssidInput" placeholder="Enter WiFi SSID" />
+        <input
+          type="password"
+          id="passwordInput"
+          placeholder="Enter WiFi Password"
+        />
+        <button id="submitCredentialsButton">Submit</button>
+      </div>
+      <div id="message" class="message"></div>
+      <div id="ssidMessage" class="message"></div>
+      <a href="#" id="goToAppButton">Go to App</a>
+      <a href="#" id="resetConnectionButton">Reset Your Connection</a>
+      <a href="#" id="connectNewNetworkButton">Connect to a new WiFi Network</a>
+    </div>
+
+    <!-- App Container -->
+    <div class="app-container">
+      <div class="app-button">
+        <a href="/i2c/i2c.html" class="app-link">
+          <span>I2C<br />Debugger</span>
+        </a>
+      </div>
+      <div class="app-button">
+        <a href="/uart/uart.html" class="app-link">
+          <span>Remote<br />UART</span>
+        </a>
+      </div>
+      <div class="app-button">
+        <a href="/analog/analog.html" class="app-link">
+          <span>Analog</span>
+        </a>
+      </div>
+      <div class="app-button">
+        <a href="/logic-analyzer/index.html" class="app-link">
+          <span>Logic Analyzer</span>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      let port;
+      const baudRate = 115200;
+
+      async function connect() {
+        if (!port) {
+          try {
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: baudRate });
+            console.log("Port opened:", port);
+          } catch (error) {
+            console.error("Error connecting to port:", error);
+            return null;
+          }
+        }
+        return port;
+      }
+
+      document.getElementById("flashButton").addEventListener("click", () => {
+        const hiddenButton = document.getElementById("hiddenInstallButton");
+        if (hiddenButton) {
+          hiddenButton.shadowRoot.querySelector("button").click();
+          hiddenButton.addEventListener("done", () => {
+            showFirstConnection();
+          });
+        }
+      });
+
+      document
+        .getElementById("alreadyFlashedButton")
+        .addEventListener("click", validateDevice);
+
+      async function validateDevice() {
+        const messageElement = document.getElementById("message");
+        messageElement.textContent = "";
+        messageElement.style.display = "none";
+
+        try {
+          port = await connect();
+          if (!port) {
+            throw new Error("Failed to open port.");
+          }
+
+          const messageReceived = await waitForAnyMessage(1000);
+
+          if (!messageReceived) {
+            console.log(
+              "No message received within 1 second, sending status command immediately"
+            );
+            showErrorMessage("Your device is not flashed correctly");
+            return;
+          }
+
+          await waitForCompiledMessage();
+
+          const response = await sendCommand("status");
+
+          if (!isValidStatusResponse(response)) {
+            showErrorMessage("Your device is not flashed correctly.");
+            return;
+          }
+
+          await handleStatusResponse(response);
+        } catch (error) {
+          console.error("Error during validation:", error);
+          showErrorMessage(
+            "An error occurred during validation: " + error.message
+          );
+        }
+      }
+      function isValidStatusResponse(response) {
+        try {
+          const statusData = JSON.parse(response);
+          return statusData.labkit === "status" && statusData.status;
+        } catch (error) {
+          return false;
+        }
+      }
+      function showErrorMessage(message) {
+        const messageElement = document.getElementById("message");
+        messageElement.textContent = `${message}. Please refresh the page for validation.`;
+        messageElement.style.display = "block";
+      }
+
+      // Function to wait for any message within a given timeout
+      async function waitForAnyMessage(timeout) {
+        const reader = port.readable.getReader();
+        let messageReceived = false;
+
+        try {
+          const timeoutPromise = new Promise((resolve) =>
+            setTimeout(resolve, timeout)
+          );
+          const readerPromise = (async () => {
+            const { value, done } = await reader.read();
+            if (!done && value) {
+              messageReceived = true;
+            }
+          })();
+
+          await Promise.race([timeoutPromise, readerPromise]);
+        } catch (error) {
+          console.error("Error waiting for any message:", error);
+        } finally {
+          reader.releaseLock();
+        }
+
+        return messageReceived;
+      }
+
+      // Function to wait specifically for a "Compiled on" message
+      async function waitForCompiledMessage() {
+        const reader = port.readable.getReader();
+        let buffer = "";
+
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const message = new TextDecoder().decode(value);
+            buffer += message;
+            console.log("Current buffer:", buffer);
+
+            const compiledOnPattern =
+              /Compiled on \w{3} \d{1,2} \d{4}  \d{2}:\d{2}:\d{2}/;
+            if (compiledOnPattern.test(buffer)) {
+              console.log('"Compiled on" formatted message detected');
+              break;
+            }
+          }
+        } catch (error) {
+          console.error('Error waiting for "Compiled on" message:', error);
+        } finally {
+          reader.releaseLock();
+        }
+      }
+
+      // Function to handle the response from the "status" command
+      async function handleStatusResponse(response) {
+        const messageElement = document.getElementById("message");
+        console.log("Received response:", response);
+
+        // Parse the response in JSON format
+        const statusData = JSON.parse(response);
+
+        // Check if the response is valid
+        if (statusData.labkit === "status" && statusData.status) {
+          // SSID ve IP adresini göstermeden basit bir mesaj ekleyin
+          messageElement.textContent = "Device connected successfully.";
+          messageElement.style.color = "green";
+          messageElement.style.display = "block";
+
+          // Redirect to First Connection page if the device is validated
+          setTimeout(() => {
+            window.location.href = "firstConnection.html";
+          }, 2000); // Wait for 2 seconds before redirecting
+        } else {
+          throw new Error("Invalid device response. Validation failed.");
+        }
+      }
+
+      function showFirstConnection() {
+        document
+          .querySelector(".flash-tool-container")
+          .classList.remove("show");
+        document
+          .querySelector(".first-connection-container")
+          .classList.add("show");
+      }
+
+      async function sendCommand(command) {
+        if (!port || !port.readable || !port.writable) {
+          throw new Error("No valid port connection.");
+        }
+
+        const writer = port.writable.getWriter();
+        const reader = port.readable.getReader();
+
+        try {
+          const encoder = new TextEncoder();
+          const data = encoder.encode(command + "\n");
+          await writer.write(data);
+          console.log("Sent command:", command);
+
+          // Wait for response
+
+          let response = "";
+          let value = 0;
+          let done = false;
+          const timeout = 5000; // 5 seconds timeout
+          const startTime = Date.now();
+
+          do {
+            let rr = await reader.read();
+            value = rr.value;
+            done = rr.done;
+            response += new TextDecoder().decode(value);
+
+            if (response.includes("\n") || Date.now() - startTime > timeout) {
+              done = true;
+            }
+          } while (!done);
+
+          console.log("Received:", response);
+          return response.trim();
+        } catch (error) {
+          console.error("Error during communication:", error);
+          throw error;
+        } finally {
+          writer.releaseLock();
+          reader.releaseLock();
+        }
+      }
+
+      async function readResponse() {
+        const reader = port.readable.getReader();
+        try {
+          const { value, done } = await reader.read();
+          if (done) {
+            return null;
+          }
+          const response = new TextDecoder().decode(value);
+          console.log("Received:", response);
+          return response;
+        } catch (error) {
+          console.error("Error reading from port:", error);
+          return null;
+        } finally {
+          reader.releaseLock();
+        }
+      }
+
+      function checkWebSocketConnection() {
+        const gatewayIP = localStorage.getItem("gatewayIP");
+        const goToAppButton = document.getElementById("goToAppButton");
+
+        // Hide the Go to App button initially
+        goToAppButton.style.display = "none";
+
+        const websocketURL = `ws://${gatewayIP}/ws`;
+        const websocket = new WebSocket(websocketURL);
+
+        websocket.onopen = function () {
+          console.log("WebSocket connection established.");
+          document.getElementById(
+            "ssidMessage"
+          ).innerHTML += `<br><strong style="color:green;">You Are In The Same Network With Device</strong>`;
+          // Show the Go to App button if the connection is successful
+          goToAppButton.style.display = "block";
+        };
+
+        websocket.onerror = function (error) {
+          console.error("WebSocket error:", error);
+          document.getElementById(
+            "ssidMessage"
+          ).innerHTML += `<br><strong style="color:red;">Failed to connect. You are not in the same network with the device.</strong>`;
+        };
+      }
+
+      async function checkConnection() {
+        const messageElement = document.getElementById("message");
+        const ssidMessageElement = document.getElementById("ssidMessage");
+        const inputContainer = document.getElementById("inputContainer");
+        const goToAppButton = document.getElementById("goToAppButton");
+        const resetConnectionButton = document.getElementById(
+          "resetConnectionButton"
+        );
+        const connectNewNetworkButton = document.getElementById(
+          "connectNewNetworkButton"
+        );
+
+        messageElement.textContent = "";
+        messageElement.style.display = "none";
+
+        if (!port || !port.readable || !port.writable) {
+          messageElement.textContent =
+            "No valid port connection. Please ensure you have selected a port.";
+          messageElement.style.display = "block";
+          return;
+        }
+
+        try {
+          const ssidResponse = await sendCommand("GET_SSID");
+
+          if (ssidResponse.includes("Not connected to any WiFi network.")) {
+            messageElement.textContent =
+              "You are not connected to any network, please connect your WiFi network.";
+            messageElement.style.display = "block";
+            inputContainer.style.display = "block";
+          } else {
+            ssidMessageElement.innerHTML = `<strong>Your SSID:</strong> ${ssidResponse}`;
+            ssidMessageElement.classList.add("success");
+            ssidMessageElement.style.display = "block";
+
+            const ipResponse = await sendCommand("GET_IP");
+            if (ipResponse) {
+              ssidMessageElement.innerHTML += `<br><strong>Your IP:</strong> ${ipResponse}`;
+            }
+
+            goToAppButton.style.display = "block";
+            resetConnectionButton.style.display = "block";
+            connectNewNetworkButton.style.display = "block";
+          }
+        } catch (error) {
+          console.error("Error during connection check:", error);
+          messageElement.textContent =
+            "Error checking connection: " + error.message;
+          messageElement.style.display = "block";
+        }
+        checkWebSocketConnection();
+      }
+
+      document
+        .getElementById("submitCredentialsButton")
+        .addEventListener("click", () => {
+          const ssid = document.getElementById("ssidInput").value;
+          const password = document.getElementById("passwordInput").value;
+          if (ssid && password) {
+            sendWifiCredentials(ssid, password);
+          } else {
+            alert("SSID and Password are required.");
+          }
+        });
+
+      document
+        .getElementById("resetConnectionButton")
+        .addEventListener("click", async () => {
+          const response = await sendCommand("CLEAR_WIFI");
+          if (response) {
+            const inputContainer = document.getElementById("inputContainer");
+            const resetConnectionButton = document.getElementById(
+              "resetConnectionButton"
+            );
+            const connectNewNetworkButton = document.getElementById(
+              "connectNewNetworkButton"
+            );
+            document.getElementById("ssidMessage").style.display = "none";
+            document.getElementById("goToAppButton").style.display = "none";
+            resetConnectionButton.style.display = "none";
+            connectNewNetworkButton.style.display = "none";
+            inputContainer.style.display = "block";
+          }
+        });
+
+      document
+        .getElementById("connectNewNetworkButton")
+        .addEventListener("click", () => {
+          document.getElementById("inputContainer").style.display = "block";
+        });
+
+      async function sendWifiCredentials(ssid, password) {
+        const message = `CONNECT_WIFI(${ssid},${password})`;
+
+        if (!port) {
+          alert("Port not opened.");
+          return;
+        }
+
+        try {
+          const textEncoder = new TextEncoderStream();
+          const writableStreamClosed = textEncoder.readable.pipeTo(
+            port.writable
+          );
+          const writer = textEncoder.writable.getWriter();
+          await writer.write(message);
+          console.log("Sent message:", message);
+          await writer.close();
+          await writableStreamClosed;
+
+          checkConnectionStatus();
+        } catch (error) {
+          console.error("Error during communication:", error);
+          alert("Error sending WiFi credentials.");
+        }
+      }
+
+      function checkConnectionStatus() {
+        const messageElement = document.getElementById("message");
+        const goToAppButton = document.getElementById("goToAppButton");
+        messageElement.style.display = "none";
+        goToAppButton.style.display = "none";
+
+        setTimeout(async () => {
+          const reader = port.readable.getReader();
+          try {
+            const { value, done } = await reader.read();
+            if (done) {
+              reader.releaseLock();
+              return;
+            }
+            const response = new TextDecoder().decode(value);
+            console.log("Received:", response);
+
+            if (response.includes("Connected to WiFi")) {
+              messageElement.textContent = "WiFi connected";
+              messageElement.classList.add("success");
+              messageElement.style.display = "block";
+              goToAppButton.style.display = "block";
+              resetConnectionButton.style.display = "block";
+              connectNewNetworkButton.style.display = "block";
+
+              // Extract IP address and store it in localStorage
+              const ipAddress = response.match(/\d+\.\d+\.\d+\.\d+/)[0];
+              localStorage.setItem("gatewayIP", ipAddress);
+            } else {
+              messageElement.textContent = "Connection Failed...";
+              messageElement.classList.remove("success");
+              messageElement.style.display = "block";
+            }
+          } catch (error) {
+            console.error("Error reading from port:", error);
+          } finally {
+            reader.releaseLock();
+          }
+        }, 3000);
+      }
+
+      document.getElementById("goToAppButton").addEventListener("click", () => {
+        showAppContainer();
+      });
+
+      function showAppContainer() {
+        document
+          .querySelector(".first-connection-container")
+          .classList.remove("show");
+        document.querySelector(".app-container").classList.add("show");
+      }
+    </script>
+  </body>
+</html>

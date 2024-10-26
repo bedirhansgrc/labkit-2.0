@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@labkit: Connect to WiFi</title>
+    <link rel="shortcut icon" href="/public/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap"
+    />
+    <link rel="stylesheet" href="/public/styles.css" />
+    <style>
+      .app-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+      }
+      .app-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+        transition: transform 0.5s;
+      }
+      a:hover {
+        cursor: pointer;
+      }
+      .message {
+        margin-top: 10px;
+        font-size: 16px;
+        color: red;
+        display: none;
+      }
+      .success {
+        color: green;
+      }
+      #goToAppButton {
+        display: none;
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #1a1aff;
+        border-radius: 10px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+        white-space: nowrap;
+      }
+      #resetConnectionButton {
+        display: none;
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #ff1a1a;
+        border-radius: 10px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+        white-space: nowrap;
+      }
+      #connectNewNetworkButton {
+        display: none;
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #fff;
+        background-color: #28a745;
+        border-radius: 10px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+        white-space: nowrap;
+      }
+      .input-container {
+        display: none;
+        margin-top: 20px;
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+      }
+      .input-container input {
+        display: block;
+        margin-bottom: 10px;
+        padding: 10px;
+        font-family: "Roboto Mono", monospace;
+        font-size: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .input-container button {
+        padding: 10px 20px;
+        font-family: "Roboto Mono", monospace;
+        font-size: 1rem;
+        cursor: pointer;
+        display: block;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="navbar-logo">
+        <a href="/index.html">@labkit</a>
+      </div>
+    </nav>
+    <div class="app-container">
+      <div id="checkConnectionButtonContainer" class="app-button">
+        <a id="checkConnectionButton" class="app-link">
+          <span>Check Connection</span>
+        </a>
+      </div>
+      <div id="inputContainer" class="input-container">
+        <input type="text" id="ssidInput" placeholder="Enter WiFi SSID" />
+        <input
+          type="password"
+          id="passwordInput"
+          placeholder="Enter WiFi Password"
+        />
+        <button id="submitCredentialsButton">Submit</button>
+      </div>
+      <div id="message" class="message"></div>
+      <div id="ssidMessage" class="message"></div>
+      <a href="app.html" id="goToAppButton">Go to App</a>
+      <a href="#" id="resetConnectionButton">Reset Your Connection</a>
+      <a href="#" id="connectNewNetworkButton">Connect to a new WiFi Network</a>
+    </div>
+
+    <script>
+      let port;
+      const baudRate = 115200;
+
+      async function connect() {
+        try {
+          port = await navigator.serial.requestPort();
+          await port.open({ baudRate: baudRate });
+          console.log("Port opened:", port);
+          return port;
+        } catch (error) {
+          console.error("Error connecting to port:", error);
+          return null;
+        }
+      }
+
+      async function sendCommand(command) {
+        if (!port) {
+          alert("Port not opened.");
+          return null;
+        }
+
+        try {
+          const textEncoder = new TextEncoderStream();
+          const writableStreamClosed = textEncoder.readable.pipeTo(
+            port.writable
+          );
+          const writer = textEncoder.writable.getWriter();
+          await writer.write(command);
+          console.log("Sent command:", command);
+          await writer.close();
+          await writableStreamClosed;
+
+          return await readResponse();
+        } catch (error) {
+          console.error("Error during communication:", error);
+          alert("Error sending command.");
+          return null;
+        }
+      }
+
+      async function readResponse() {
+        const reader = port.readable.getReader();
+        let fullResponse = "";
+
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            fullResponse += new TextDecoder().decode(value);
+
+            // Mesajın tamamen alınıp alınmadığını kontrol et
+            if (fullResponse.includes("}")) {
+              // Mesajın bitişini kontrol ediyoruz
+              break;
+            }
+          }
+          console.log("Received complete response:", fullResponse);
+          return fullResponse.trim();
+        } catch (error) {
+          console.error("Error reading from port:", error);
+          return null;
+        } finally {
+          reader.releaseLock();
+        }
+      }
+
+      async function checkConnection() {
+        port = await connect();
+        if (!port) {
+          alert("Failed to open port.");
+          return;
+        }
+
+        const messageElement = document.getElementById("message");
+        const ssidMessageElement = document.getElementById("ssidMessage");
+        const inputContainer = document.getElementById("inputContainer");
+        const goToAppButton = document.getElementById("goToAppButton");
+        const resetConnectionButton = document.getElementById(
+          "resetConnectionButton"
+        );
+        const connectNewNetworkButton = document.getElementById(
+          "connectNewNetworkButton"
+        );
+
+        try {
+          // 1 saniye boyunca herhangi bir mesajın gelip gelmediğini kontrol et
+          const messageReceived = await waitForAnyMessage(1000);
+
+          if (!messageReceived) {
+            console.log(
+              "No message received within 1 second, sending status command immediately"
+            );
+            const response = await sendCommand("status");
+            await handleStatusResponse(response);
+            return;
+          }
+
+          // "Compiled on" mesajını bekle
+          await waitForCompiledMessage();
+
+          // "status" komutunu gönder
+          const response = await sendCommand("status");
+          await handleStatusResponse(response);
+        } catch (error) {
+          console.error("Error during connection check:", error);
+          messageElement.textContent =
+            "An error occurred during connection check: " + error.message;
+          messageElement.style.display = "block";
+        }
+      }
+
+      async function waitForAnyMessage(timeout) {
+        const reader = port.readable.getReader();
+        let messageReceived = false;
+
+        try {
+          const timeoutPromise = new Promise((resolve) =>
+            setTimeout(resolve, timeout)
+          );
+          const readerPromise = (async () => {
+            const { value, done } = await reader.read();
+            if (!done && value) {
+              messageReceived = true;
+            }
+          })();
+
+          await Promise.race([timeoutPromise, readerPromise]);
+        } catch (error) {
+          console.error("Error waiting for any message:", error);
+        } finally {
+          reader.releaseLock();
+        }
+
+        return messageReceived;
+      }
+
+      async function waitForCompiledMessage() {
+        const reader = port.readable.getReader();
+        let buffer = "";
+
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const message = new TextDecoder().decode(value);
+            buffer += message;
+            console.log("Current buffer:", buffer);
+
+            const compiledOnPattern =
+              /Compiled on \w{3} \d{1,2} \d{4}  \d{2}:\d{2}:\d{2}/;
+            if (compiledOnPattern.test(buffer)) {
+              console.log('"Compiled on" formatted message detected');
+              break;
+            }
+          }
+        } catch (error) {
+          console.error('Error waiting for "Compiled on" message:', error);
+        } finally {
+          reader.releaseLock();
+        }
+      }
+
+      async function handleStatusResponse(response) {
+        const messageElement = document.getElementById("message");
+        const ssidMessageElement = document.getElementById("ssidMessage");
+        const inputContainer = document.getElementById("inputContainer");
+        const goToAppButton = document.getElementById("goToAppButton");
+        const resetConnectionButton = document.getElementById(
+          "resetConnectionButton"
+        );
+        const connectNewNetworkButton = document.getElementById(
+          "connectNewNetworkButton"
+        );
+
+        console.log("Received response:", response);
+
+        try {
+          // Yanıtı JSON formatında işle
+          const statusData = JSON.parse(response);
+
+          // ssid ve ip değerlerini al
+          const ssid = statusData.status.ssid;
+          const ip = statusData.status.ip;
+
+          // ssid ve ip bilgilerine göre ekranı güncelle
+          if (ssid === "-" && ip === "-") {
+            messageElement.textContent =
+              "You are not connected to any network, please connect your WiFi network.";
+            messageElement.style.display = "block";
+            inputContainer.style.display = "block";
+          } else {
+            ssidMessageElement.innerHTML = `<strong>Your SSID:</strong> ${ssid}<br><strong>Your IP:</strong> ${ip}`;
+            ssidMessageElement.classList.add("success");
+            ssidMessageElement.style.display = "block";
+            goToAppButton.style.display = "block";
+            resetConnectionButton.style.display = "block";
+            connectNewNetworkButton.style.display = "block";
+          }
+        } catch (error) {
+          console.error("Error parsing status response:", error);
+          messageElement.textContent = "Failed to retrieve status information.";
+          messageElement.style.display = "block";
+        }
+      }
+
+      document
+        .getElementById("checkConnectionButton")
+        .addEventListener("click", checkConnection);
+
+      document
+        .getElementById("submitCredentialsButton")
+        .addEventListener("click", () => {
+          const ssid = document.getElementById("ssidInput").value;
+          const password = document.getElementById("passwordInput").value;
+          if (ssid && password) {
+            sendWifiCredentials(ssid, password);
+          } else {
+            alert("SSID and Password are required.");
+          }
+        });
+
+      document
+        .getElementById("resetConnectionButton")
+        .addEventListener("click", async () => {
+          const response = await sendCommand("CLEAR_WIFI");
+          if (response) {
+            const inputContainer = document.getElementById("inputContainer");
+            const resetConnectionButton = document.getElementById(
+              "resetConnectionButton"
+            );
+            const connectNewNetworkButton = document.getElementById(
+              "connectNewNetworkButton"
+            );
+            document.getElementById("ssidMessage").style.display = "none";
+            document.getElementById("goToAppButton").style.display = "none";
+            resetConnectionButton.style.display = "none";
+            connectNewNetworkButton.style.display = "none";
+            inputContainer.style.display = "block";
+          }
+        });
+
+      document
+        .getElementById("connectNewNetworkButton")
+        .addEventListener("click", () => {
+          document.getElementById("inputContainer").style.display = "block";
+        });
+
+      async function sendWifiCredentials(ssid, password) {
+        const message = `CONNECT_WIFI(${ssid},${password})`;
+
+        if (!port) {
+          alert("Port not opened.");
+          return;
+        }
+
+        try {
+          const textEncoder = new TextEncoderStream();
+          const writableStreamClosed = textEncoder.readable.pipeTo(
+            port.writable
+          );
+          const writer = textEncoder.writable.getWriter();
+          await writer.write(message);
+          console.log("Sent message:", message);
+          await writer.close();
+          await writableStreamClosed;
+
+          checkConnectionStatus();
+        } catch (error) {
+          console.error("Error during communication:", error);
+          alert("Error sending WiFi credentials.");
+        }
+      }
+
+      function checkConnectionStatus() {
+        const messageElement = document.getElementById("message");
+        const goToAppButton = document.getElementById("goToAppButton");
+        messageElement.style.display = "none";
+        goToAppButton.style.display = "none";
+
+        setTimeout(async () => {
+          const reader = port.readable.getReader();
+          try {
+            const { value, done } = await reader.read();
+            if (done) {
+              reader.releaseLock();
+              return;
+            }
+            const response = new TextDecoder().decode(value);
+            console.log("Received:", response);
+
+            if (response.includes("Connected to WiFi")) {
+              messageElement.textContent = "WiFi connected";
+              messageElement.classList.add("success");
+              messageElement.style.display = "block";
+              goToAppButton.style.display = "block";
+
+              // Extract IP address and store it in localStorage
+              const ipAddress = response.match(/\d+\.\d+\.\d+\.\d+/)[0];
+              localStorage.setItem("gatewayIP", ipAddress);
+            } else {
+              messageElement.textContent = "Connection Failed...";
+              messageElement.classList.remove("success");
+              messageElement.style.display = "block";
+            }
+          } catch (error) {
+            console.error("Error reading from port:", error);
+          } finally {
+            reader.releaseLock();
+          }
+        }, 3000);
+      }
+    </script>
+  </body>
+</html>
