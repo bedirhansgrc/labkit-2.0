@@ -260,16 +260,13 @@
         }
 
         try {
-          const textEncoder = new TextEncoderStream();
-          const writableStreamClosed = textEncoder.readable.pipeTo(
-            port.writable
-          );
-          const writer = textEncoder.writable.getWriter();
-          await writer.write(command);
+          // Yazma işlemi
+          const writer = port.writable.getWriter();
+          await writer.write(new TextEncoder().encode(command + "\n"));
           console.log("Sent command:", command);
-          await writer.close();
-          await writableStreamClosed;
+          writer.releaseLock();
 
+          // Okuma işlemi
           return await readResponse();
         } catch (error) {
           console.error("Error during communication:", error);
@@ -278,22 +275,25 @@
         }
       }
 
-      async function readResponse() {
+      async function readResponse(timeout = 10000) {
         const reader = port.readable.getReader();
         let fullResponse = "";
+        const startTime = Date.now();
 
         try {
-          while (true) {
+          while (Date.now() - startTime < timeout) {
             const { value, done } = await reader.read();
             if (done) break;
 
             fullResponse += new TextDecoder().decode(value);
+            console.log("Received data:", fullResponse);
 
-            if (fullResponse.includes("}")) {
+            // Yanıtın tamamını aldığınızı belirleyen bir koşul ekleyin
+            if (fullResponse.includes("\n")) {
               break;
             }
           }
-          console.log("Received complete response:", fullResponse);
+
           return fullResponse.trim();
         } catch (error) {
           console.error("Error reading from port:", error);
@@ -436,10 +436,29 @@
           "none"; // Hide submit button
 
         try {
-          const response = await sendCommand(command);
+          // Komutu gönder ve yanıtı oku
+          await sendCommand(command);
+          const ipAddress = await waitForIPAddress(10000); // 10 saniye boyunca IP adresini bekle
 
-          // Start checking for IP address response
-          await waitForConnection();
+          if (ipAddress) {
+            console.log("Connected to WiFi with IP:", ipAddress);
+            // WiFi simgesini yeşil yapın
+            document.getElementById("wifiIcon").innerHTML =
+              '<span class="material-icons" style="color: green;">wifi</span>';
+
+            // Input alanlarını gizleyin
+            document.getElementById("inputContainer").style.display = "none";
+
+            // Kullanıcıyı IP adresine yönlendirin
+            setTimeout(() => {
+              window.location.href = `http://${ipAddress}`;
+            }, 1000);
+          } else {
+            console.log("Failed to connect within the timeout period.");
+            alert(
+              "Failed to connect to WiFi. Please check your SSID and password."
+            );
+          }
         } catch (error) {
           console.error("Error sending WiFi credentials:", error);
         } finally {
@@ -450,46 +469,130 @@
         }
       }
 
-      async function waitForConnection() {
-        const reader = port.readable.getReader();
+      async function waitForIPAddress(timeout) {
         let ipAddress = null;
-        const timeout = 5000; // 5 seconds timeout
         const startTime = Date.now();
+        let buffer = "";
+
+        const textDecoder = new TextDecoder();
+        const reader = port.readable.getReader();
 
         try {
           while (Date.now() - startTime < timeout) {
             const { value, done } = await reader.read();
             if (done) break;
 
-            const response = new TextDecoder().decode(value);
-            console.log("Received response:", response);
+            buffer += textDecoder.decode(value);
+            console.log("Received buffer:", buffer);
 
-            // Check if the response contains an IP address
-            const ipMatch = response.match(/\d+\.\d+\.\d+\.\d+/);
+            // IP adresini kontrol edin
+            const ipMatch = buffer.match(
+              /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/
+            );
             if (ipMatch) {
               ipAddress = ipMatch[0];
               break;
             }
-          }
 
-          if (ipAddress) {
-            console.log("Connected to WiFi with IP:", ipAddress);
-            document.getElementById("wifiIcon").innerHTML =
-              '<span class="material-icons" style="color: green;">wifi</span>';
-            document.getElementById("inputContainer").style.display = "none";
-            document.getElementById("proceedButton").style.display = "block";
-
-            // Redirect to IP address upon clicking "Proceed"
-            document
-              .getElementById("proceedButton")
-              .addEventListener("click", () => {
-                window.location.href = `http://${ipAddress}`;
-              });
-          } else {
-            console.log("Failed to connect within the timeout period.");
+            // "Failed" ile başlayan bir mesaj kontrolü
+            if (buffer.includes("Failed")) {
+              console.log("Connection failed message received.");
+              ipAddress = null; // Bu durumda IP adresi beklemeyi bırak ve null döndür
+              break;
+            }
           }
         } catch (error) {
           console.error("Error reading from port:", error);
+        } finally {
+          reader.releaseLock();
+        }
+
+        return ipAddress;
+      }
+      async function handleConnectionResponse(response) {
+        // Cihazdan gelen yanıtı işleyin
+        // Örneğin, IP adresini içeren bir mesaj arayın
+        const ipMatch = response.match(
+          /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/
+        );
+        if (ipMatch) {
+          const ipAddress = ipMatch[0];
+          console.log("Connected to WiFi with IP:", ipAddress);
+
+          // WiFi simgesini yeşil yapın
+          document.getElementById("wifiIcon").innerHTML =
+            '<span class="material-icons" style="color: green;">wifi</span>';
+
+          // Input alanlarını gizleyin
+          document.getElementById("inputContainer").style.display = "none";
+
+          // Kullanıcıyı IP adresine yönlendirin
+          setTimeout(() => {
+            window.location.href = `http://${ipAddress}`;
+          }, 1000);
+        } else if (response.includes("Failed") || response.includes("Error")) {
+          // Bağlantı başarısız olduysa kullanıcıya mesaj gösterin
+          alert(
+            "Failed to connect to WiFi. Please check your SSID and password."
+          );
+        } else {
+          // Beklenmeyen bir yanıt geldiyse tekrar kontrol edin veya zaman aşımı ekleyin
+          console.log("Unexpected response:", response);
+        }
+      }
+
+      async function waitForConnection() {
+        let ipAddress = null;
+        const timeout = 20000; // 20 saniye bekleme süresi
+        const startTime = Date.now();
+        let buffer = "";
+
+        const textDecoder = new TextDecoder();
+        const reader = port.readable.getReader();
+
+        try {
+          while (Date.now() - startTime < timeout) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            buffer += textDecoder.decode(value);
+            console.log("Received buffer:", buffer);
+
+            // IP adresini kontrol edin
+            const ipMatch = buffer.match(
+              /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/
+            );
+            if (ipMatch) {
+              ipAddress = ipMatch[0];
+              break;
+            }
+
+            // Hata mesajlarını kontrol edin
+            if (
+              buffer.includes("Invalid credentials") ||
+              buffer.includes("Connection failed")
+            ) {
+              console.log("Connection failed message received.");
+              break;
+            }
+          }
+
+          // Sonuçları işleyin
+          if (ipAddress) {
+            console.log("Connected to WiFi with IP:", ipAddress);
+            // Arayüzü güncelleyin ve yönlendirme yapın
+            // ...
+          } else {
+            console.log("Failed to connect within the timeout period.");
+            alert(
+              "WiFi bağlantısı başarısız oldu. Lütfen SSID ve şifreyi kontrol edin."
+            );
+            // Arayüzü güncelleyin
+            // ...
+          }
+        } catch (error) {
+          console.error("Error reading from port:", error);
+          alert("Seri porttan okuma sırasında bir hata oluştu.");
         } finally {
           reader.releaseLock();
         }
